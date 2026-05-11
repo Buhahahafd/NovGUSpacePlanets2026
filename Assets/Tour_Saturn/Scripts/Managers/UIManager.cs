@@ -2,15 +2,41 @@ using UnityEngine;
 
 public class UIManager : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    [Header("UI Panels")]
+    [SerializeField] private GameObject startScreen;
+    [SerializeField] private GameObject questUI;
+    [SerializeField] private GameObject quizUI;
+    [SerializeField] private GameObject finalScreen;
+
+    public void HideAllUI()
     {
-        
+        startScreen.SetActive(false);
+        questUI.SetActive(false);
+        quizUI.SetActive(false);
+        finalScreen.SetActive(false);
     }
 
-    // Update is called once per frame
-    void Update()
+    public void ShowStartScreen()
     {
-        
+        HideAllUI();
+        startScreen.SetActive(true);
+    }
+
+    public void ShowQuestUI()
+    {
+        HideAllUI();
+        questUI.SetActive(true);
+    }
+
+    public void ShowQuiz()
+    {
+        HideAllUI();
+        quizUI.SetActive(true);
+    }
+
+    public void ShowFinalScreen()
+    {
+        HideAllUI();
+        finalScreen.SetActive(true);
     }
 }

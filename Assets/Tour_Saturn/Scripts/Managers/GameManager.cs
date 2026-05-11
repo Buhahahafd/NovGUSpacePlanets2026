@@ -11,7 +11,7 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        Debug.Log("»гра запущена");
+        Debug.Log("—ценарий запущен");
         _sm.StoryStart();
     }
 
