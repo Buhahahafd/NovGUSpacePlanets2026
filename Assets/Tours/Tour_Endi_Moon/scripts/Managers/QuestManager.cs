@@ -30,10 +30,6 @@ namespace MoonGame
             UncoveredCount++;
             Debug.Log($"[QuestManager] Откопан артефакт {type}. Всего откопано: {UncoveredCount}/{TotalArtifacts}");
 
-            // Озвучка реакции
-            if (GameManager.Instance != null && GameManager.Instance.Audio != null)
-                GameManager.Instance.Audio.PlayArtifactFoundClip(type);
-
             OnArtifactUncovered?.Invoke(type);
 
             if (UncoveredCount >= TotalArtifacts && story != null && story.GetCurrentStage() == GameState.Exploration)

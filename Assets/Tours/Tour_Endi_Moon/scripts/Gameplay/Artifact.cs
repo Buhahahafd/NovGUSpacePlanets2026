@@ -75,6 +75,9 @@ namespace MoonGame
 
             if (GameManager.Instance != null && GameManager.Instance.Quest != null)
                 GameManager.Instance.Quest.RegisterUncovered(type);
+
+            if (GameManager.Instance != null && GameManager.Instance.Audio != null)
+                GameManager.Instance.Audio.PlayArtifactFoundClip(type);
         }
     }
 }

@@ -54,14 +54,25 @@ namespace MoonGame
             }
         }
 
+        /// <summary>Показывает финальный экран с результатом и итоговой репликой.</summary>
         public void ShowResult(int correct, int total)
         {
             if (resultPanel != null) resultPanel.SetActive(true);
-            if (resultText != null) resultText.text = $"Правильных ответов: {correct} из {total}";
+            if (resultText != null) resultText.text = BuildResultText(correct, total);
 
-            // Скрываем кнопки/вопрос
             if (questionText != null) questionText.text = string.Empty;
             foreach (var b in optionButtons) if (b != null) b.gameObject.SetActive(false);
+        }
+
+        private static string BuildResultText(int correct, int total)
+        {
+            string phrase = correct == total
+                ? "Это невероятный успех нашего с тобой исследования Луны!\nТвои знания помогут человечеству узнать больше о нашей Солнечной системе."
+                : correct >= 3
+                    ? "Твоих знаний уже достаточно, чтобы помочь учёным организовать новую миссию по исследованию Луны."
+                    : "Думаю, нам стоит ещё раз посетить Луну, чтобы узнать немного больше.";
+
+            return $"Правильных ответов: {correct} из {total}\n\n{phrase}";
         }
     }
 }
