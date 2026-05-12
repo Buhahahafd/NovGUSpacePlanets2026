@@ -1,47 +1,54 @@
+using System;
 using UnityEngine;
 
-public enum GameState
+namespace MoonGame
 {
-    Start,
-    Orbit,
-    Landing,
-    Exploration,
-    Quest,
-    Quiz,
-    End
-}
-
-public class StoryManager : MonoBehaviour
-{
-    private GameState currentState;
-
-    public void StartStory()
+    /// <summary>
+    /// Менеджер сценария. Хранит текущее состояние и оповещает подписчиков о смене этапов.
+    /// Согласно ТЗ-3: реализует StartStory, NextStage, SetStage, GetCurrentStage.
+    /// </summary>
+    public class StoryManager : MonoBehaviour
     {
-        currentState = GameState.Start;
-        Debug.Log("Сценарий запущен. Этап: " + currentState);
-    }
+        [Header("Текущее состояние (для отладки в Inspector)")]
+        [SerializeField] private GameState currentState = GameState.Start;
 
-    public void NextStage()
-    {
-        if (currentState < GameState.End)
+        /// <summary>Событие смены этапа. На него подписываются AudioManager, UIManager, QuestManager и т.д.</summary>
+        public event Action<GameState> OnStateChanged;
+
+        /// <summary>Запуск сценария. Вызывается из GameManager.</summary>
+        public void StartStory()
         {
-            currentState++;
-            Debug.Log("Переход к этапу: " + currentState);
+            Debug.Log("[StoryManager] Сценарий стартовал.");
+            SetStage(GameState.Orbit);
         }
-        else
+
+        /// <summary>Переход на конкретный этап.</summary>
+        public void SetStage(GameState newState)
         {
-            Debug.Log("Сценарий завершён.");
+            if (newState == currentState)
+            {
+                Debug.LogWarning($"[StoryManager] Попытка установить тот же этап: {newState}");
+                return;
+            }
+
+            currentState = newState;
+            Debug.Log($"[StoryManager] Этап: {currentState}");
+            OnStateChanged?.Invoke(currentState);
         }
-    }
 
-    public void SetStage(GameState state)
-    {
-        currentState = state;
-        Debug.Log("Установлен этап: " + currentState);
-    }
+        /// <summary>Переход на следующий этап по порядку enum.</summary>
+        public void NextStage()
+        {
+            int next = (int)currentState + 1;
+            if (next > (int)GameState.End)
+            {
+                Debug.Log("[StoryManager] Сценарий уже завершён.");
+                return;
+            }
+            SetStage((GameState)next);
+        }
 
-    public GameState GetCurrentStage()
-    {
-        return currentState;
+        /// <summary>Получить текущий этап.</summary>
+        public GameState GetCurrentStage() => currentState;
     }
 }
