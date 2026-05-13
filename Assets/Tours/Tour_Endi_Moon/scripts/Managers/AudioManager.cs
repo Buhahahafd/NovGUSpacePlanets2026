@@ -116,6 +116,9 @@ namespace MoonGame
         public void PlayStartScreenIntro() => Play(clipStart);
         public AudioClip GetStartClip() => clipStart;
 
+        /// <summary>Возвращает длину клипа высадки (Landing). Используется в LandingSequencer.</summary>
+        public float GetLandingClipDuration() => clipLanding != null ? clipLanding.length : 55f;
+
         private void Play(AudioClip clip)
         {
             if (clip == null || narratorSource == null) return;
