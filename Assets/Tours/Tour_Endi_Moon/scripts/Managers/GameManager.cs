@@ -53,5 +53,6 @@ namespace MoonGame
 
             storyManager.StartStory();
         }
+
     }
 }

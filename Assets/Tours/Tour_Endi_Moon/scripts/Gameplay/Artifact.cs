@@ -24,6 +24,8 @@ namespace MoonGame
         [Header("XR Grab Interactable, который активируется после откопки")]
         [SerializeField] private XRGrabInteractable grabInteractable;
 
+        private Rigidbody rb;
+
         public bool IsUncovered { get; private set; }
         private int currentHits;
         private Vector3 startPos;
@@ -38,6 +40,15 @@ namespace MoonGame
 
             if (grabInteractable == null) grabInteractable = GetComponent<XRGrabInteractable>();
             if (grabInteractable != null) grabInteractable.enabled = false; // нельзя схватить, пока не откопан
+
+            rb = GetComponent<Rigidbody>();
+
+            if (rb != null)
+            {
+                rb.useGravity = false;
+                rb.isKinematic = true;
+            }
+
         }
 
         private void Update()
@@ -49,6 +60,13 @@ namespace MoonGame
                 if (riseT >= 1f)
                 {
                     rising = false;
+
+                    if (rb != null)
+                    {
+                        rb.useGravity = true;
+                        rb.isKinematic = false;
+                    }
+
                     if (grabInteractable != null) grabInteractable.enabled = true;
                 }
             }

@@ -82,20 +82,25 @@ namespace MoonGame
                 case GameState.Orbit:
                     // Можно проиграть короткий звук "посадки" или ничего
                     break;
+
                 case GameState.Landing:
                     PlayAndAdvance(clipLanding, GameState.Exploration);
                     break;
+
                 case GameState.Exploration:
                     Play(clipExplorationIntro);
                     StartCoroutine(PlayAfterDelay(
                         clipExplorationFacts,
                         clipExplorationIntro != null ? clipExplorationIntro.length + 1f : 5f));
                     break;
+
                 case GameState.Quest:
                     break;
+
                 case GameState.Collecting:
                     Play(clipCollecting);
                     break;
+
                 case GameState.End:
                     PlayEnd();
                     break;
@@ -107,13 +112,22 @@ namespace MoonGame
         {
             switch (type)
             {
-                case ArtifactType.Boot:     Play(clipBootFound); break;
-                case ArtifactType.Metal:    Play(clipMetalFound); break;
-                case ArtifactType.Notebook: Play(clipNotebookFound); break;
+                case ArtifactType.Boot:
+                    Play(clipBootFound);
+                    break;
+
+                case ArtifactType.Metal:
+                    Play(clipMetalFound);
+                    break;
+
+                case ArtifactType.Notebook:
+                    Play(clipNotebookFound);
+                    break;
             }
         }
 
         public void PlayStartScreenIntro() => Play(clipStart);
+
         public AudioClip GetStartClip() => clipStart;
 
         /// <summary>Возвращает длину клипа высадки (Landing). Используется в LandingSequencer.</summary>
@@ -122,15 +136,18 @@ namespace MoonGame
         private void Play(AudioClip clip)
         {
             if (clip == null || narratorSource == null) return;
+
             narratorSource.Stop();
             narratorSource.clip = clip;
             narratorSource.Play();
+
             Debug.Log($"[AudioManager] Играет: {clip.name}");
         }
 
         private void PlayAndAdvance(AudioClip clip, GameState nextState)
         {
             Play(clip);
+
             float wait = clip != null ? clip.length : 1f;
             StartCoroutine(AdvanceAfter(wait, nextState));
         }
@@ -138,6 +155,7 @@ namespace MoonGame
         private IEnumerator AdvanceAfter(float seconds, GameState nextState)
         {
             yield return new WaitForSeconds(seconds);
+
             if (story != null && story.GetCurrentStage() != nextState)
                 story.SetStage(nextState);
         }
@@ -155,9 +173,13 @@ namespace MoonGame
                 : 0;
 
             AudioClip clip;
-            if (correct == 5)       clip = clipEndPerfect;
-            else if (correct >= 3)  clip = clipEndGood;
-            else                    clip = clipEndBad;
+
+            if (correct == 5)
+                clip = clipEndPerfect;
+            else if (correct >= 3)
+                clip = clipEndGood;
+            else
+                clip = clipEndBad;
 
             Play(clip);
             StartCoroutine(PlayAfterDelay(clipNextAdventure, clip != null ? clip.length + 1f : 4f));
