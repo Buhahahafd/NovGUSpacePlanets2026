@@ -716,6 +716,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1710001344}
   m_SourcePrefab: {fileID: 100100000, guid: 64b959c14a218644ca9d0d7fa8d6f31d, type: 3}
+--- !u!4 &386593056 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -2577548232221058511, guid: 9259e73e3c12de54492738e801be81cc, type: 3}
+  m_PrefabInstance: {fileID: 550704699}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &443024847 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -2229324637170072745, guid: c5c494271a6759f45baebdb4ec55b0be, type: 3}
@@ -1029,7 +1034,7 @@ MonoBehaviour:
   m_ReinitializeDynamicAttachEverySingleGrab: 1
   m_AttachEaseInTime: 0.15
   m_MovementType: 2
-  m_PredictedVisualsTransform: {fileID: 550704705}
+  m_PredictedVisualsTransform: {fileID: 386593056}
   m_VelocityDamping: 1
   m_VelocityScale: 1
   m_AngularVelocityDamping: 1
@@ -1140,11 +1145,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3.01, y: 5, z: 6.23}
   m_Center: {x: 0, y: 2, z: 0}
---- !u!4 &550704705 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 9259e73e3c12de54492738e801be81cc, type: 3}
-  m_PrefabInstance: {fileID: 550704699}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &566451933
 GameObject:
   m_ObjectHideFlags: 0
