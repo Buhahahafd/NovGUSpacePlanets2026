@@ -1,12 +1,12 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace MoonGame
 {
     /// <summary>
     /// Менеджер озвучки. Проигрывает голос за кадром на каждом этапе сценария.
-    /// Подписывается на OnStateChanged StoryManager-а.
-    /// Озвучки соответствуют сценарию из ТЗ "Луна".
+    /// Реплики ставятся в очередь и никогда не перебивают друг друга.
     /// </summary>
     public class AudioManager : MonoBehaviour
     {
@@ -50,6 +50,10 @@ namespace MoonGame
         [Tooltip("'Ну что ж, отправимся в новое приключение'")]
         [SerializeField] private AudioClip clipNextAdventure;
 
+        // Очередь клипов — реплики никогда не перебивают друг друга
+        private readonly Queue<AudioClip> clipQueue = new();
+        private Coroutine playbackCoroutine;
+
         private StoryManager story;
 
         private void Start()
@@ -80,25 +84,23 @@ namespace MoonGame
             switch (state)
             {
                 case GameState.Orbit:
-                    // Можно проиграть короткий звук "посадки" или ничего
                     break;
 
                 case GameState.Landing:
-                    PlayAndAdvance(clipLanding, GameState.Exploration);
+                    Enqueue(clipLanding);
+                    StartCoroutine(AdvanceAfterClip(clipLanding, GameState.Exploration));
                     break;
 
                 case GameState.Exploration:
-                    Play(clipExplorationIntro);
-                    StartCoroutine(PlayAfterDelay(
-                        clipExplorationFacts,
-                        clipExplorationIntro != null ? clipExplorationIntro.length + 1f : 5f));
+                    Enqueue(clipExplorationIntro);
+                    Enqueue(clipExplorationFacts);
                     break;
 
                 case GameState.Quest:
                     break;
 
                 case GameState.Collecting:
-                    Play(clipCollecting);
+                    Enqueue(clipCollecting);
                     break;
 
                 case GameState.End:
@@ -107,63 +109,61 @@ namespace MoonGame
             }
         }
 
-        /// <summary>Проигрывает звук по типу найденного артефакта.</summary>
+        /// <summary>Проигрывает звук по типу найденного артефакта (ставит в очередь).</summary>
         public void PlayArtifactFoundClip(ArtifactType type)
         {
             switch (type)
             {
-                case ArtifactType.Boot:
-                    Play(clipBootFound);
-                    break;
-
-                case ArtifactType.Metal:
-                    Play(clipMetalFound);
-                    break;
-
-                case ArtifactType.Notebook:
-                    Play(clipNotebookFound);
-                    break;
+                case ArtifactType.Boot:     Enqueue(clipBootFound);     break;
+                case ArtifactType.Metal:    Enqueue(clipMetalFound);    break;
+                case ArtifactType.Notebook: Enqueue(clipNotebookFound); break;
             }
         }
 
-        public void PlayStartScreenIntro() => Play(clipStart);
+        public void PlayStartScreenIntro() => Enqueue(clipStart);
 
         public AudioClip GetStartClip() => clipStart;
 
         /// <summary>Возвращает длину клипа высадки (Landing). Используется в LandingSequencer.</summary>
         public float GetLandingClipDuration() => clipLanding != null ? clipLanding.length : 55f;
 
-        private void Play(AudioClip clip)
+        // ─── Очередь воспроизведения ─────────────────────────────────────────
+
+        /// <summary>Добавляет клип в очередь. Если очередь была пуста — запускает воспроизведение.</summary>
+        private void Enqueue(AudioClip clip)
         {
-            if (clip == null || narratorSource == null) return;
-
-            narratorSource.Stop();
-            narratorSource.clip = clip;
-            narratorSource.Play();
-
-            Debug.Log($"[AudioManager] Играет: {clip.name}");
+            if (clip == null) return;
+            clipQueue.Enqueue(clip);
+            Debug.Log($"[AudioManager] Очередь +«{clip.name}» (в очереди: {clipQueue.Count})");
+            if (playbackCoroutine == null)
+                playbackCoroutine = StartCoroutine(PlayQueue());
         }
 
-        private void PlayAndAdvance(AudioClip clip, GameState nextState)
+        private IEnumerator PlayQueue()
         {
-            Play(clip);
+            while (clipQueue.Count > 0)
+            {
+                AudioClip next = clipQueue.Dequeue();
+                if (next == null) continue;
 
+                narratorSource.clip = next;
+                narratorSource.Play();
+                Debug.Log($"[AudioManager] Играет: «{next.name}»");
+
+                yield return new WaitWhile(() => narratorSource.isPlaying);
+                yield return new WaitForSeconds(0.3f);
+            }
+            playbackCoroutine = null;
+        }
+
+        // ─── Вспомогательные методы ──────────────────────────────────────────
+
+        private IEnumerator AdvanceAfterClip(AudioClip clip, GameState nextState)
+        {
             float wait = clip != null ? clip.length : 1f;
-            StartCoroutine(AdvanceAfter(wait, nextState));
-        }
-
-        private IEnumerator AdvanceAfter(float seconds, GameState nextState)
-        {
-            yield return new WaitForSeconds(seconds);
-
+            yield return new WaitForSeconds(wait + 1f);
             if (story != null && story.GetCurrentStage() != nextState)
                 story.SetStage(nextState);
-        }
-
-        private IEnumerator PlayAfterDelay(AudioClip clip, float delay)
-        {
-            yield return new WaitForSeconds(delay);
-            Play(clip);
         }
 
         private void PlayEnd()
@@ -172,17 +172,12 @@ namespace MoonGame
                 ? GameManager.Instance.Quiz.GetCorrectAnswersCount()
                 : 0;
 
-            AudioClip clip;
+            AudioClip resultClip = correct == 5 ? clipEndPerfect
+                                 : correct >= 3 ? clipEndGood
+                                 : clipEndBad;
 
-            if (correct == 5)
-                clip = clipEndPerfect;
-            else if (correct >= 3)
-                clip = clipEndGood;
-            else
-                clip = clipEndBad;
-
-            Play(clip);
-            StartCoroutine(PlayAfterDelay(clipNextAdventure, clip != null ? clip.length + 1f : 4f));
+            Enqueue(resultClip);
+            Enqueue(clipNextAdventure);
         }
     }
 }
