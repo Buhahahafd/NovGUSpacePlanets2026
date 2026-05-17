@@ -3,30 +3,42 @@ using UnityEngine;
 namespace MoonGame
 {
     /// <summary>
-    /// Скрипт инструмента (кисточка или лопатка). Вешается на модель инструмента.
-    /// При касании Collider-а артефакта регистрирует "удар" по артефакту.
+    /// Скрипт инструмента (лопата). Вешается на модель инструмента.
+    /// При касании Collider-а SandPile регистрирует "удар" по кучке земли.
+    /// При касании Artifact напрямую (без кучки) также регистрирует удар.
     /// Требует Collider в режиме Trigger на инструменте (например, на наконечнике).
     /// </summary>
     public class DiggingTool : MonoBehaviour
     {
-        [Header("Минимальный интервал между касаниями одного артефакта (сек)")]
+        [Header("Минимальный интервал между касаниями одного объекта (сек)")]
         [SerializeField] private float hitCooldown = 0.25f;
 
-        // Когда последний раз ударяли артефакт (по instanceId)
         private readonly System.Collections.Generic.Dictionary<int, float> lastHitTime = new();
 
         private void OnTriggerStay(Collider other)
         {
-            // Артефакт должен иметь компонент Artifact на том же объекте, что и его Collider
-            var artifact = other.GetComponent<Artifact>();
-            if (artifact == null || artifact.IsUncovered) return;
+            // Приоритет — кучка земли
+            var pile = other.GetComponent<SandPile>();
+            if (pile != null && !pile.IsDug)
+            {
+                TryHit(pile.GetInstanceID(), () => pile.RegisterHit());
+                return;
+            }
 
-            int id = artifact.GetInstanceID();
+            // Fallback — прямой артефакт (без кучки)
+            var artifact = other.GetComponent<Artifact>();
+            if (artifact != null && !artifact.IsUncovered)
+            {
+                TryHit(artifact.GetInstanceID(), () => artifact.RegisterDigHit());
+            }
+        }
+
+        private void TryHit(int id, System.Action onHit)
+        {
             float now = Time.time;
             if (lastHitTime.TryGetValue(id, out float prev) && now - prev < hitCooldown) return;
-
             lastHitTime[id] = now;
-            artifact.RegisterDigHit();
+            onHit?.Invoke();
         }
     }
 }

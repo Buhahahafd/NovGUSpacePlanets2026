@@ -33,20 +33,39 @@ namespace MoonGame
             if (root != null) root.SetActive(visible);
         }
 
+        /// <summary>Показывает вопрос и привязывает колбэк к кнопкам.</summary>
         public void ShowQuestion(QuizQuestion q, Action<int> onAnswer)
         {
             if (resultPanel != null) resultPanel.SetActive(false);
+
             currentCallback = onAnswer;
-            if (questionText != null) questionText.text = q.text;
+
+            if (questionText != null)
+                questionText.text = q.text;
+
+            if (optionButtons == null || optionButtons.Length == 0)
+            {
+                Debug.LogError("[QuizUI] optionButtons не заполнены в инспекторе!");
+                return;
+            }
 
             for (int i = 0; i < optionButtons.Length; i++)
             {
+                if (optionButtons[i] == null)
+                {
+                    Debug.LogError($"[QuizUI] optionButtons[{i}] == null. Проверь ссылки в инспекторе.");
+                    continue;
+                }
+
                 bool active = i < q.options.Length;
                 optionButtons[i].gameObject.SetActive(active);
+
                 if (!active) continue;
 
                 if (optionLabels != null && i < optionLabels.Length && optionLabels[i] != null)
                     optionLabels[i].text = q.options[i];
+                else
+                    Debug.LogWarning($"[QuizUI] optionLabels[{i}] не задан — текст кнопки не обновлён.");
 
                 int captured = i;
                 optionButtons[i].onClick.RemoveAllListeners();
