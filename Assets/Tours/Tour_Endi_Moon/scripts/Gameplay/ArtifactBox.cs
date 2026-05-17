@@ -32,12 +32,13 @@ namespace MoonGame
             // "Пристёгиваем" артефакт к ящику, чтобы он не выпал
             artifact.transform.SetParent(transform);
             var rb = artifact.GetComponent<Rigidbody>();
+            /*
             if (rb != null)
             {
                 rb.isKinematic = true;
                 rb.linearVelocity = Vector3.zero;
                 rb.angularVelocity = Vector3.zero;
-            }
+            }*/
 
             if (GameManager.Instance != null && GameManager.Instance.Quest != null)
                 GameManager.Instance.Quest.RegisterStored(artifact.type);
