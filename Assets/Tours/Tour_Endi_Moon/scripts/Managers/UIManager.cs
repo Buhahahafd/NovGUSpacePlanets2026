@@ -4,7 +4,7 @@ using UnityEngine;
 namespace MoonGame
 {
     /// <summary>
-    /// Менеджер UI. Показывает субтитры и подсказки.
+    /// Менеджер UI. Показывает подсказки и счётчик артефактов.
     /// Подписан на смену этапов сценария.
     /// </summary>
     public class UIManager : MonoBehaviour
@@ -30,6 +30,8 @@ namespace MoonGame
                 quest.OnArtifactUncovered += _ => RefreshCounter();
                 quest.OnArtifactStored += _ => RefreshCounter();
             }
+
+            HideHint();
             RefreshCounter();
         }
 
@@ -42,18 +44,20 @@ namespace MoonGame
         {
             switch (state)
             {
+                case GameState.Intro:
+                    HideHint();
+                    break;
                 case GameState.Landing:
-                    ShowHint("Осмотрись вокруг — ты на Луне.");
+                    ShowHint("Ты на Луне! Послушай рассказ об этом небесном теле.");
                     break;
                 case GameState.Exploration:
-                    ShowHint("Возьми кисточку и лопатку у корабля и найди артефакты.");
+                    ShowHint("Возьми лопату и откопай 3 артефакта в кучках грунта.");
                     break;
-                case GameState.Quest:
                 case GameState.Collecting:
-                    ShowHint("Отнеси артефакты к ящику возле корабля.");
+                    ShowHint("Отлично! Сложи все артефакты в ящик у корабля.");
                     break;
                 case GameState.Return:
-                    ShowHint("Возвращайся на стартовую площадку.");
+                    ShowHint("Все артефакты в ящике. Возвращайся на платформу к кораблю.");
                     break;
                 case GameState.Quiz:
                     ShowHint("Ответь на 5 вопросов о Луне.");
@@ -64,6 +68,7 @@ namespace MoonGame
             }
         }
 
+        /// <summary>Показывает подсказку.</summary>
         public void ShowHint(string text)
         {
             if (hintCanvas != null) hintCanvas.SetActive(true);
@@ -71,6 +76,7 @@ namespace MoonGame
             Debug.Log($"[UIManager] Подсказка: {text}");
         }
 
+        /// <summary>Скрывает подсказку.</summary>
         public void HideHint()
         {
             if (hintCanvas != null) hintCanvas.SetActive(false);
@@ -79,7 +85,7 @@ namespace MoonGame
         private void RefreshCounter()
         {
             if (artifactCounterText == null || quest == null) return;
-            artifactCounterText.text = $"Артефакты: {quest.UncoveredCount}/3   В ящике: {quest.StoredCount}/3";
+            artifactCounterText.text = $"В ящике: {quest.StoredCount}/{QuestManager.TotalArtifacts}";
         }
     }
 }

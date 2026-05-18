@@ -3,10 +3,10 @@ using UnityEngine;
 namespace MoonGame
 {
     /// <summary>
-    /// Скрипт инструмента (лопата). Вешается на модель инструмента.
-    /// При касании Collider-а SandPile регистрирует "удар" по кучке земли.
-    /// При касании Artifact напрямую (без кучки) также регистрирует удар.
-    /// Требует Collider в режиме Trigger на инструменте (например, на наконечнике).
+    /// Лопата. Вешается на модель лопаты.
+    /// Единственная функция: при касании с SandPile регистрирует удар → кучка погружается,
+    /// затем артефакт появляется на поверхности.
+    /// Требует Collider с isTrigger = true на наконечнике лопаты.
     /// </summary>
     public class DiggingTool : MonoBehaviour
     {
@@ -15,30 +15,36 @@ namespace MoonGame
 
         private readonly System.Collections.Generic.Dictionary<int, float> lastHitTime = new();
 
-        private void OnTriggerStay(Collider other)
-        {
-            // Приоритет — кучка земли
-            var pile = other.GetComponent<SandPile>();
-            if (pile != null && !pile.IsDug)
-            {
-                TryHit(pile.GetInstanceID(), () => pile.RegisterHit());
-                return;
-            }
+        // Фрейм последнего удара — гарантирует, что за один физический контакт
+        // бьётся ровно одна кучка, даже если коллайдеры соседних кучек перекрываются.
+        private int lastHitFrame = -1;
 
-            // Fallback — прямой артефакт (без кучки)
-            var artifact = other.GetComponent<Artifact>();
-            if (artifact != null && !artifact.IsUncovered)
-            {
-                TryHit(artifact.GetInstanceID(), () => artifact.RegisterDigHit());
-            }
+        private void OnTriggerEnter(Collider other)
+        {
+            RegisterPileHit(other);
         }
 
-        private void TryHit(int id, System.Action onHit)
+        private void OnTriggerStay(Collider other)
         {
+            RegisterPileHit(other);
+        }
+
+        private void RegisterPileHit(Collider other)
+        {
+            var pile = other.GetComponent<SandPile>();
+            if (pile == null || pile.IsDug) return;
+
+            // Один удар за кадр — исключаем одновременное попадание по двум кучкам
+            int frame = Time.frameCount;
+            if (frame == lastHitFrame) return;
+
             float now = Time.time;
+            int id = pile.GetInstanceID();
             if (lastHitTime.TryGetValue(id, out float prev) && now - prev < hitCooldown) return;
+
+            lastHitFrame = frame;
             lastHitTime[id] = now;
-            onHit?.Invoke();
+            pile.RegisterHit();
         }
     }
 }

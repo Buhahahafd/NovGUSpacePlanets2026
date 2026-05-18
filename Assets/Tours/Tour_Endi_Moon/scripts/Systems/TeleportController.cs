@@ -1,26 +1,33 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
 
 namespace MoonGame
 {
     /// <summary>
-    /// Контроллер телепортации между кораблём и стартовой площадкой.
-    /// Использует ScreenFader для градиентного перехода: локация A → чёрный → локация B.
-    /// Подписывается на GameState для автоматического срабатывания:
-    ///   Exploration → телепортирует игрока из корабля на площадку.
-    ///   Quiz        → телепортирует игрока с площадки на корабль.
+    /// Управляет телепортацией игрока между тремя спавн-точками.
+    /// Каждый переход сопровождается затемнением экрана и звуком телепорта.
     ///
-    /// Также предоставляет публичный метод Teleport() для ручного вызова.
+    /// Точки:
+    ///   spawn1 — посадка (Intro / Landing)
+    ///   spawn2 — монолог и квиз (Monologue / Quiz)
+    ///   spawn3 — раскопки (Exploration / Collecting)
+    ///
+    /// Автоматические переходы:
+    ///   Monologue → teleport spawn1 → spawn2
+    ///   Exploration → teleport spawn2 → spawn3
+    ///   Return     → teleport spawn3 → spawn2 → Quiz (с задержкой)
     /// </summary>
     public class TeleportController : MonoBehaviour
     {
-        [Header("Точки назначения")]
-        [Tooltip("Позиция и поворот игрока на стартовой площадке (снаружи корабля)")]
-        [SerializeField] private Transform landingSpot;
+        [Header("Три спавн-точки")]
+        [Tooltip("Spawn 1 — посадка на Луне (Intro / Landing)")]
+        [SerializeField] private Transform spawn1;
 
-        [Tooltip("Позиция и поворот игрока на борту корабля (квиз)")]
-        [SerializeField] private Transform shipSpot;
+        [Tooltip("Spawn 2 — монолог и финальный квиз (внутри/у корабля)")]
+        [SerializeField] private Transform spawn2;
+
+        [Tooltip("Spawn 3 — зона раскопок")]
+        [SerializeField] private Transform spawn3;
 
         [Header("XR Rig — объект, который телепортируем")]
         [SerializeField] private Transform xrRig;
@@ -33,7 +40,10 @@ namespace MoonGame
         [SerializeField] private AudioClip teleportClip;
 
         [Header("Задержка после появления перед снятием чёрного (сек)")]
-        [SerializeField] private float settleDelay = 0.15f;
+        [SerializeField] private float settleDelay = 0.2f;
+
+        [Header("Задержка перед запуском квиза после возврата (сек)")]
+        [SerializeField] private float quizStartDelay = 1.5f;
 
         private StoryManager story;
 
@@ -46,12 +56,15 @@ namespace MoonGame
             if (story != null)
                 story.OnStateChanged += HandleStateChanged;
 
-            // Авто-поиск XR Rig если не задан
             if (xrRig == null)
             {
                 var rig = FindFirstObjectByType<Unity.XR.CoreUtils.XROrigin>();
                 if (rig != null) xrRig = rig.transform;
             }
+
+            // Всегда ставим игрока на Spawn 1 при старте — без fade и звука
+            if (spawn1 != null)
+                MoveRig(spawn1);
         }
 
         private void OnDestroy()
@@ -62,41 +75,81 @@ namespace MoonGame
 
         private void HandleStateChanged(GameState state)
         {
-            if (state == GameState.Exploration && landingSpot != null)
-                StartCoroutine(DoTeleport(landingSpot));
-            else if (state == GameState.Quiz && shipSpot != null)
-                StartCoroutine(DoTeleport(shipSpot));
+            switch (state)
+            {
+                // Spawn 1 → Spawn 2: второй монолог
+                case GameState.Monologue when spawn2 != null:
+                    StartCoroutine(DoTeleport(spawn2, afterTeleport: null));
+                    break;
+
+                // Spawn 2 → Spawn 3: раскопки
+                case GameState.Exploration when spawn3 != null:
+                    StartCoroutine(DoTeleport(spawn3, afterTeleport: null));
+                    break;
+
+                // Return — ждём, когда игрок сам встанет на платформу (ReturnPlatform).
+                // Телепорт будет вызван через TriggerReturnTeleport().
+                case GameState.Return:
+                    break;
+            }
         }
 
-        /// <summary>Ручной вызов телепортации в произвольную точку.</summary>
+        /// <summary>Ручной телепорт в произвольную точку (без смены состояния).</summary>
         public void Teleport(Transform destination)
         {
             if (destination == null) return;
-            StartCoroutine(DoTeleport(destination));
+            StartCoroutine(DoTeleport(destination, afterTeleport: null));
         }
 
-        private IEnumerator DoTeleport(Transform destination)
+        /// <summary>
+        /// Вызывается из ReturnPlatform, когда игрок встаёт на платформу в стадии Return.
+        /// Делает fade-телепорт на Spawn 2, затем запускает квиз.
+        /// </summary>
+        public void TriggerReturnTeleport()
+        {
+            if (spawn2 == null) return;
+            StartCoroutine(DoTeleport(spawn2, afterTeleport: StartQuizDelayed));
+        }
+
+        private IEnumerator DoTeleport(Transform destination, System.Action afterTeleport)
         {
             if (fader == null)
             {
                 MoveRig(destination);
+                afterTeleport?.Invoke();
                 yield break;
             }
 
-            // Затемнение
             yield return StartCoroutine(fader.FadeOut());
-
-            // Звук телепорта
             PlayTeleportSound();
-
-            // Небольшая пауза на чёрном
             yield return new WaitForSeconds(settleDelay);
-
-            // Перемещение
             MoveRig(destination);
-
-            // Осветление
             yield return StartCoroutine(fader.FadeIn());
+
+            afterTeleport?.Invoke();
+        }
+
+        private void StartQuizDelayed()
+        {
+            StartCoroutine(QuizAfterDelay());
+        }
+
+        private IEnumerator QuizAfterDelay()
+        {
+            yield return new WaitForSeconds(quizStartDelay);
+
+            // Принимаем Quiz из состояний Return и Collecting —
+            // не проверяем строго Return, так как состояние могло уже измениться
+            var stage = story != null ? story.GetCurrentStage() : GameState.End;
+            if (stage == GameState.Return || stage == GameState.Collecting)
+            {
+                Debug.Log("[TeleportController] Запуск квиза после возврата на Spawn 2.");
+                story.SetStage(GameState.Quiz);
+            }
+            else
+            {
+                Debug.LogWarning($"[TeleportController] QuizAfterDelay: неожиданное состояние {stage}, квиз пропущен.");
+            }
         }
 
         private void MoveRig(Transform destination)
@@ -107,7 +160,21 @@ namespace MoonGame
                 return;
             }
 
-            xrRig.SetPositionAndRotation(destination.position, destination.rotation);
+            // Компенсируем горизонтальное смещение камеры относительно рута рига.
+            // Это устраняет сдвиг, вызванный трекингом гарнитуры в реальном пространстве.
+            var xrOrigin = xrRig.GetComponent<Unity.XR.CoreUtils.XROrigin>();
+            if (xrOrigin != null && xrOrigin.Camera != null)
+            {
+                Vector3 cameraOffset = xrOrigin.Camera.transform.position - xrRig.position;
+                cameraOffset.y = 0f; // компенсируем только горизонталь; высоту рига не трогаем
+                xrRig.position = destination.position - cameraOffset;
+            }
+            else
+            {
+                xrRig.position = destination.position;
+            }
+
+            xrRig.rotation = destination.rotation;
             Debug.Log($"[TeleportController] Телепорт → {destination.name}");
         }
 

@@ -3,15 +3,14 @@ using UnityEngine;
 namespace MoonGame
 {
     /// <summary>
-    /// Управляет доступностью инструментов (кисточка и лопатка).
-    /// Инструменты неактивны до перехода в GameState.Exploration —
-    /// чтобы игрок не мог взять их до окончания озвучки о Луне.
+    /// Управляет доступностью лопаты.
+    /// Лопата недоступна до перехода в GameState.Exploration —
+    /// чтобы игрок не мог взять её во время вступительной озвучки.
     /// </summary>
     public class ToolsController : MonoBehaviour
     {
-        [Header("Инструменты для расчистки грунта")]
+        [Header("Лопата")]
         [SerializeField] private GameObject shovel;
-        [SerializeField] private GameObject paintBrush;
 
         private StoryManager storyManager;
 
@@ -21,8 +20,7 @@ namespace MoonGame
                 ? GameManager.Instance.Story
                 : FindFirstObjectByType<StoryManager>();
 
-            // Скрываем инструменты в начале
-            SetToolsActive(false);
+            SetShovelActive(false);
 
             if (storyManager == null)
             {
@@ -42,14 +40,15 @@ namespace MoonGame
         private void HandleStateChanged(GameState state)
         {
             if (state == GameState.Exploration)
-                SetToolsActive(true);
+                SetShovelActive(true);
+            else if (state == GameState.Return || state == GameState.Quiz || state == GameState.End)
+                SetShovelActive(false);
         }
 
-        /// <summary>Показывает или скрывает инструменты.</summary>
-        private void SetToolsActive(bool active)
+        /// <summary>Показывает или скрывает лопату.</summary>
+        private void SetShovelActive(bool active)
         {
             if (shovel != null) shovel.SetActive(active);
-            if (paintBrush != null) paintBrush.SetActive(active);
         }
     }
 }

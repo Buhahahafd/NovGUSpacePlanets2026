@@ -6,7 +6,7 @@ namespace MoonGame
     /// <summary>
     /// Кучка земли, которая погружается в грунт при каждом ударе лопатой.
     /// После достаточного числа ударов открывает вложенный артефакт.
-    /// Опциональный артефакт: если не задан — кучка просто уходит вниз (пустая яма).
+    /// Если артефакт не задан — кучка просто уходит вниз (пустая яма).
     /// </summary>
     public class SandPile : MonoBehaviour
     {
@@ -25,11 +25,7 @@ namespace MoonGame
         [Header("Задержка после последнего удара до раскрытия артефакта (сек)")]
         [SerializeField] private float revealDelay = 0.4f;
 
-        [Header("Cooldown между ударами (сек)")]
-        [SerializeField] private float hitCooldown = 0.3f;
-
         private int currentHits;
-        private float lastHitTime;
         private bool isDug;
         private Vector3 targetPosition;
         private bool isSinking;
@@ -40,11 +36,9 @@ namespace MoonGame
         {
             targetPosition = transform.position;
 
-            // Прячем артефакт под землей, чтобы он не был виден и не interactable
+            // Прячем артефакт под землёй до момента откопки
             if (hiddenArtifact != null)
-            {
                 hiddenArtifact.gameObject.SetActive(false);
-            }
         }
 
         private void Update()
@@ -68,12 +62,8 @@ namespace MoonGame
         public void RegisterHit()
         {
             if (isDug) return;
-            if (Time.time - lastHitTime < hitCooldown) return;
 
-            lastHitTime = Time.time;
             currentHits++;
-
-            // Опускаем кучку на один шаг
             targetPosition -= Vector3.up * sinkPerHit;
             isSinking = true;
 
@@ -90,12 +80,12 @@ namespace MoonGame
 
             if (hiddenArtifact != null)
             {
-                // Помещаем артефакт чуть выше поверхности кучки
-                hiddenArtifact.gameObject.SetActive(true);
-                hiddenArtifact.transform.position = transform.position + Vector3.up * 0.05f;
+                // Артефакт появляется чуть выше поверхности кучки
+                Vector3 spawnPos = transform.position + Vector3.up * 0.05f;
+                hiddenArtifact.Uncover(spawnPos);
             }
 
-            // Скрываем саму кучку
+            // Кучка исчезает
             gameObject.SetActive(false);
         }
     }

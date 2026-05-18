@@ -5,21 +5,23 @@ namespace MoonGame
 {
     /// <summary>
     /// Менеджер сценария. Хранит текущее состояние и оповещает подписчиков о смене этапов.
-    /// Согласно ТЗ-3: реализует StartStory, NextStage, SetStage, GetCurrentStage.
     /// </summary>
     public class StoryManager : MonoBehaviour
     {
         [Header("Текущее состояние (для отладки в Inspector)")]
-        [SerializeField] private GameState currentState = GameState.Start;
+        [SerializeField] private GameState currentState = GameState.Intro;
 
-        /// <summary>Событие смены этапа. На него подписываются AudioManager, UIManager, QuestManager и т.д.</summary>
+        /// <summary>Событие смены этапа.</summary>
         public event Action<GameState> OnStateChanged;
 
-        /// <summary>Запуск сценария. Вызывается из GameManager.</summary>
-        public void StartStory()
+        /// <summary>
+        /// Устанавливает этап без проверки на повтор. Используется при старте сценария.
+        /// </summary>
+        public void SetStageForce(GameState newState)
         {
-            Debug.Log("[StoryManager] Сценарий стартовал.");
-            SetStage(GameState.Orbit);
+            currentState = newState;
+            Debug.Log($"[StoryManager] Начальный этап: {currentState}");
+            OnStateChanged?.Invoke(currentState);
         }
 
         /// <summary>Переход на конкретный этап.</summary>

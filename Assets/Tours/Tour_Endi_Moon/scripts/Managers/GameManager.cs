@@ -4,7 +4,8 @@ namespace MoonGame
 {
     /// <summary>
     /// Главный менеджер приложения. Singleton, точка входа.
-    /// Инициализирует StoryManager и запускает сценарий.
+    /// Инициализирует StoryManager и запускает сценарий с этапа Intro.
+    /// Вся игра проходит в одной сцене moon.unity.
     /// </summary>
     public class GameManager : MonoBehaviour
     {
@@ -25,7 +26,6 @@ namespace MoonGame
 
         private void Awake()
         {
-            // Singleton
             if (Instance != null && Instance != this)
             {
                 Destroy(gameObject);
@@ -33,7 +33,6 @@ namespace MoonGame
             }
             Instance = this;
 
-            // Если ссылки не проставлены в Inspector — пробуем найти автоматически на том же объекте
             if (storyManager == null) storyManager = GetComponent<StoryManager>();
             if (audioManager == null) audioManager = GetComponent<AudioManager>();
             if (uiManager == null) uiManager = GetComponent<UIManager>();
@@ -51,8 +50,8 @@ namespace MoonGame
                 return;
             }
 
-            storyManager.StartStory();
+            // Всегда стартуем с Intro (внутри корабля — вращающаяся Луна + озвучка)
+            storyManager.SetStageForce(GameState.Intro);
         }
-
     }
 }

@@ -7,25 +7,40 @@ namespace MoonGame
     /// <summary>
     /// Менеджер озвучки. Проигрывает голос за кадром на каждом этапе сценария.
     /// Реплики ставятся в очередь и никогда не перебивают друг друга.
+    ///
+    /// Маршрут озвучки:
+    ///   Intro     — clipIntro      (Spawn 1, внутри корабля)
+    ///   Landing   — clipLanding    (Spawn 1, первый монолог о Луне)
+    ///   Monologue — clipMonologue  (Spawn 2, второй монолог)
+    ///   Exploration — clipExplorationIntro + clipExplorationFacts
+    ///   Collecting  — clipCollecting
+    ///   End         — clipEnd* + clipNextAdventure
     /// </summary>
     public class AudioManager : MonoBehaviour
     {
         [Header("AudioSource для голоса за кадром")]
         [SerializeField] private AudioSource narratorSource;
 
-        [Header("Аудиоклипы по этапам сценария")]
-        [Tooltip("Стартовый экран: 'Сегодня, дорогой исследователь, ты познакомишься...'")]
-        [SerializeField] private AudioClip clipStart;
+        [Header("Intro — Spawn 1, внутри корабля")]
+        [Tooltip("«Сегодня, дорогой исследователь, ты познакомишься с небесным телом — Луной.»")]
+        [SerializeField] private AudioClip clipIntro;
 
-        [Tooltip("Высадка: рассказ о Луне, расстоянии, Аполлоне-11")]
+        [Header("Landing — Spawn 1, первый монолог о Луне")]
+        [Tooltip("«Луна — самый близкий к Земле объект...»")]
         [SerializeField] private AudioClip clipLanding;
 
-        [Tooltip("Начало квеста: 'Давай исследуем поверхность Луны...'")]
+        [Header("Monologue — Spawn 2, второй монолог")]
+        [Tooltip("Второй монолог после телепорта на Spawn 2")]
+        [SerializeField] private AudioClip clipMonologue;
+
+        [Header("Exploration — начало раскопок (Spawn 3)")]
+        [Tooltip("«Давай исследуем поверхность Луны и найдём доказательства пребывания здесь человека»")]
         [SerializeField] private AudioClip clipExplorationIntro;
 
         [Tooltip("Факты во время поиска: про кратеры, атмосферу, приливы")]
         [SerializeField] private AudioClip clipExplorationFacts;
 
+        [Header("Артефакты — реплики при находке")]
         [Tooltip("При находке ботинка")]
         [SerializeField] private AudioClip clipBootFound;
 
@@ -35,19 +50,21 @@ namespace MoonGame
         [Tooltip("При находке блокнота")]
         [SerializeField] private AudioClip clipNotebookFound;
 
-        [Tooltip("'Давай заберём всё это с собой...'")]
+        [Header("Collecting — все найдены, складываем в ящик")]
+        [Tooltip("«Давай заберём всё это с собой и передадим учёным для исследования.»")]
         [SerializeField] private AudioClip clipCollecting;
 
-        [Tooltip("Финальная реплика (хороший результат, 3-4 верных)")]
-        [SerializeField] private AudioClip clipEndGood;
-
-        [Tooltip("Финальная реплика (отличный результат, 5 верных)")]
+        [Header("End — финальные реплики по результату квиза")]
+        [Tooltip("Финальная реплика — отличный результат (все 5 верных)")]
         [SerializeField] private AudioClip clipEndPerfect;
 
-        [Tooltip("Финальная реплика (плохой результат, 0-2 верных)")]
+        [Tooltip("Финальная реплика — хороший результат (3-4 верных)")]
+        [SerializeField] private AudioClip clipEndGood;
+
+        [Tooltip("Финальная реплика — плохой результат (0-2 верных)")]
         [SerializeField] private AudioClip clipEndBad;
 
-        [Tooltip("'Ну что ж, отправимся в новое приключение'")]
+        [Tooltip("«Ну что ж, отправимся в новое приключение.»")]
         [SerializeField] private AudioClip clipNextAdventure;
 
         // Очередь клипов — реплики никогда не перебивают друг друга
@@ -65,7 +82,6 @@ namespace MoonGame
                 narratorSource.spatialBlend = 0f; // 2D — голос за кадром
             }
 
-            // Подписка на смену этапов
             story = GameManager.Instance != null ? GameManager.Instance.Story : FindFirstObjectByType<StoryManager>();
             if (story != null)
                 story.OnStateChanged += HandleStateChanged;
@@ -83,20 +99,21 @@ namespace MoonGame
         {
             switch (state)
             {
-                case GameState.Orbit:
+                case GameState.Intro:
+                    Enqueue(clipIntro);
                     break;
 
                 case GameState.Landing:
                     Enqueue(clipLanding);
-                    StartCoroutine(AdvanceAfterClip(clipLanding, GameState.Exploration));
+                    break;
+
+                case GameState.Monologue:
+                    Enqueue(clipMonologue);
                     break;
 
                 case GameState.Exploration:
                     Enqueue(clipExplorationIntro);
                     Enqueue(clipExplorationFacts);
-                    break;
-
-                case GameState.Quest:
                     break;
 
                 case GameState.Collecting:
@@ -120,14 +137,16 @@ namespace MoonGame
             }
         }
 
-        public void PlayStartScreenIntro() => Enqueue(clipStart);
+        /// <summary>Длина вступительного клипа Intro. Используется IntroSequencer.</summary>
+        public float GetIntroClipDuration() => clipIntro != null ? clipIntro.length : 30f;
 
-        public AudioClip GetStartClip() => clipStart;
-
-        /// <summary>Возвращает длину клипа высадки (Landing). Используется в LandingSequencer.</summary>
+        /// <summary>Длина клипа Landing (первый монолог о Луне). Используется IntroSequencer.</summary>
         public float GetLandingClipDuration() => clipLanding != null ? clipLanding.length : 55f;
 
-        // ─── Очередь воспроизведения ─────────────────────────────────────────
+        /// <summary>Длина клипа Monologue (второй монолог). Используется IntroSequencer.</summary>
+        public float GetMonologueClipDuration() => clipMonologue != null ? clipMonologue.length : 40f;
+
+        // ─── Очередь воспроизведения ─────────────────────────────────────────────
 
         /// <summary>Добавляет клип в очередь. Если очередь была пуста — запускает воспроизведение.</summary>
         private void Enqueue(AudioClip clip)
@@ -154,16 +173,6 @@ namespace MoonGame
                 yield return new WaitForSeconds(0.3f);
             }
             playbackCoroutine = null;
-        }
-
-        // ─── Вспомогательные методы ──────────────────────────────────────────
-
-        private IEnumerator AdvanceAfterClip(AudioClip clip, GameState nextState)
-        {
-            float wait = clip != null ? clip.length : 1f;
-            yield return new WaitForSeconds(wait + 1f);
-            if (story != null && story.GetCurrentStage() != nextState)
-                story.SetStage(nextState);
         }
 
         private void PlayEnd()
