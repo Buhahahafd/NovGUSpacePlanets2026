@@ -65,12 +65,12 @@ namespace MoonGame
 
             // Останавливаем физику до смены родителя — иначе Rigidbody может дёрнуться
             var rb = artifact.GetComponent<Rigidbody>();
+            /*
             if (rb != null)
             {
                 rb.linearVelocity = Vector3.zero;
                 rb.angularVelocity = Vector3.zero;
-                rb.isKinematic = true;
-            }
+
 
             // Прикрепляем к ящику, сохраняя мировую позицию
             artifact.transform.SetParent(transform, worldPositionStays: true);
